@@ -134,7 +134,13 @@ function App() {
       editor.querySelectorAll("fieldset").forEach((fieldset) => {
         const legend = fieldset.querySelector("legend");
         if (legend?.textContent?.trim() !== "Толщина штриха") return;
-        if (fieldset.dataset.mikoStrokeWidthMounted === "true") return;
+        if (fieldset.dataset.mikoStrokeWidthMounted === "true") {
+          const existingInput = fieldset.querySelector(".miko-stroke-width-input");
+          if (existingInput && document.activeElement !== existingInput) {
+            existingInput.value = String(strokeWidth);
+          }
+          return;
+        }
 
         fieldset.dataset.mikoStrokeWidthMounted = "true";
         fieldset.classList.add("miko-numeric-stroke-width");
