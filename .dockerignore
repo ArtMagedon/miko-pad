@@ -1,0 +1,9 @@
+.git
+.github
+data/*
+!data/.gitkeep
+**/node_modules
+**/dist
+**/__pycache__
+*.pyc
+.env
