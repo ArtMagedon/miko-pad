@@ -8,7 +8,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 BOARD_FILE = Path(os.environ.get("BOARD_FILE", "/data/board.excalidraw"))
-EMPTY_BOARD = {\n    "type": "excalidraw",\n    "version": 2,\n    "source": "https://github.com/ArtMagedon/miko-pad",\n    "elements": [],\n    "appState": {},\n    "files": {},\n}
+EMPTY_BOARD = {
+    "type": "excalidraw",
+    "version": 2,
+    "source": "https://github.com/ArtMagedon/miko-pad",
+    "elements": [],
+    "appState": {},
+    "files": {},
+}
 
 app = FastAPI(title="Miko Pad API", docs_url=None, redoc_url=None)
 
