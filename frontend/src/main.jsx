@@ -4,6 +4,8 @@ import { CaptureUpdateAction, Excalidraw, newElementWith } from "@excalidraw/exc
 import "@excalidraw/excalidraw/index.css";
 import "./style.css";
 
+const STROKE_WIDTH_SCALE = 5;
+
 const APP_STATE_KEYS = [
   "viewBackgroundColor",
   "theme",
@@ -30,7 +32,21 @@ async function loadBoard() {
   if (!response.ok) {
     throw new Error(`Не удалось загрузить доску (HTTP ${response.status})`);
   }
-  return response.json();
+  const data = await response.json();
+  if (data.mikoStrokeWidthScale !== STROKE_WIDTH_SCALE) {
+    data.elements = (data.elements || []).map((element) => ({
+      ...element,
+      strokeWidth: element.strokeWidth / STROKE_WIDTH_SCALE,
+    }));
+    if (Number.isFinite(data.appState?.currentItemStrokeWidth)) {
+      data.appState = {
+        ...data.appState,
+        currentItemStrokeWidth: data.appState.currentItemStrokeWidth / STROKE_WIDTH_SCALE,
+      };
+    }
+    data.mikoStrokeWidthScale = STROKE_WIDTH_SCALE;
+  }
+  return data;
 }
 
 function App() {
@@ -39,6 +55,11 @@ function App() {
   const [saveState, setSaveState] = useState("loading");
   const [excalidrawAPI, setExcalidrawAPI] = useState(null);
   const [strokeWidth, setStrokeWidth] = useState(2);
+  const [pressureEnabled, setPressureEnabled] = useState(
+    () => localStorage.getItem("miko-pad-pressure-enabled") !== "false",
+  );
+  const pressureEnabledRef = useRef(pressureEnabled);
+  const pointerDownVersionsRef = useRef(new Map());
   const timerRef = useRef(null);
   const latestRef = useRef(null);
   const saveQueueRef = useRef(Promise.resolve());
@@ -87,12 +108,12 @@ function App() {
   const handleChange = useCallback((elements, appState, files) => {
     const selectedWidths = elements
       .filter((element) => appState.selectedElementIds?.[element.id])
-      .map((element) => element.strokeWidth);
+      .map((element) => element.strokeWidth * STROKE_WIDTH_SCALE);
     if (selectedWidths.length > 0) {
       const firstWidth = selectedWidths[0];
       setStrokeWidth(selectedWidths.every((width) => width === firstWidth) ? firstWidth : "");
     } else if (Number.isFinite(appState.currentItemStrokeWidth)) {
-      setStrokeWidth(appState.currentItemStrokeWidth);
+      setStrokeWidth(appState.currentItemStrokeWidth * STROKE_WIDTH_SCALE);
     }
     const safeAppState = {};
     for (const key of APP_STATE_KEYS) {
@@ -102,6 +123,7 @@ function App() {
     latestRef.current = {
       type: "excalidraw",
       version: 2,
+      mikoStrokeWidthScale: STROKE_WIDTH_SCALE,
       source: "https://github.com/ArtMagedon/miko-pad",
       elements,
       appState: safeAppState,
@@ -118,16 +140,17 @@ function App() {
   const handleStrokeWidthChange = (event) => {
     const value = Number(event.target.value);
     if (!Number.isFinite(value) || value < 1 || value > 100) return;
+    const actualWidth = value / STROKE_WIDTH_SCALE;
     setStrokeWidth(value);
     if (!excalidrawAPI) return;
     const appState = excalidrawAPI.getAppState();
     const selectedIds = appState.selectedElementIds;
     const elements = excalidrawAPI.getSceneElementsIncludingDeleted().map((element) =>
-      selectedIds[element.id] ? newElementWith(element, { strokeWidth: value }) : element,
+      selectedIds[element.id] ? newElementWith(element, { strokeWidth: actualWidth }) : element,
     );
     excalidrawAPI.updateScene({
       elements,
-      appState: { currentItemStrokeWidth: value },
+      appState: { currentItemStrokeWidth: actualWidth },
       captureUpdate: CaptureUpdateAction.IMMEDIATELY,
     });
   };
@@ -142,9 +165,12 @@ function App() {
         if (legend?.textContent?.trim() !== "Толщина штриха") return;
         if (fieldset.dataset.mikoStrokeWidthMounted === "true") {
           const existingInput = fieldset.querySelector(".miko-stroke-width-input");
-          if (existingInput && document.activeElement !== existingInput) {
-            existingInput.value = String(strokeWidth);
+          if (existingInput) {
+            existingInput.onchange = handleStrokeWidthChange;
+            if (document.activeElement !== existingInput) existingInput.value = String(strokeWidth);
           }
+          const existingToggle = fieldset.querySelector(".miko-pressure-toggle-input");
+          if (existingToggle) existingToggle.checked = pressureEnabled;
           return;
         }
 
@@ -159,8 +185,25 @@ function App() {
         input.value = String(strokeWidth);
         input.setAttribute("aria-label", "Толщина штриха в пикселях");
         input.className = "miko-stroke-width-input";
-        input.addEventListener("change", handleStrokeWidthChange);
+        input.onchange = handleStrokeWidthChange;
         fieldset.appendChild(input);
+
+        const pressureLabel = document.createElement("label");
+        pressureLabel.className = "miko-pressure-toggle";
+        const pressureInput = document.createElement("input");
+        pressureInput.type = "checkbox";
+        pressureInput.className = "miko-pressure-toggle-input";
+        pressureInput.checked = pressureEnabled;
+        pressureInput.addEventListener("change", (event) => {
+          const enabled = event.target.checked;
+          pressureEnabledRef.current = enabled;
+          setPressureEnabled(enabled);
+          localStorage.setItem("miko-pad-pressure-enabled", String(enabled));
+        });
+        const pressureText = document.createElement("span");
+        pressureText.textContent = "Давление";
+        pressureLabel.append(pressureInput, pressureText);
+        fieldset.appendChild(pressureLabel);
       });
     };
 
@@ -168,7 +211,47 @@ function App() {
     const observer = new MutationObserver(installNumericStrokeWidth);
     observer.observe(editor, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [initialData, strokeWidth, excalidrawAPI]);
+  }, [initialData, strokeWidth, pressureEnabled, excalidrawAPI]);
+
+  useEffect(() => {
+    pressureEnabledRef.current = pressureEnabled;
+  }, [pressureEnabled]);
+
+  const handlePointerUpdate = useCallback(({ button }) => {
+    if (!excalidrawAPI) return;
+    if (button === "down") {
+      const elements = excalidrawAPI.getSceneElementsIncludingDeleted();
+      pointerDownVersionsRef.current = new Map(elements.map((element) => [element.id, element.version]));
+      return;
+    }
+    if (button !== "up" || pressureEnabledRef.current) return;
+
+    window.requestAnimationFrame(() => {
+      const elements = excalidrawAPI.getSceneElementsIncludingDeleted();
+      const changedFreeDrawIds = new Set(
+        elements.filter((element) =>
+          element.type === "freedraw" &&
+          !element.isDeleted &&
+          pointerDownVersionsRef.current.get(element.id) !== element.version
+        ).map((element) => element.id),
+      );
+      if (changedFreeDrawIds.size === 0) return;
+
+      const updatedElements = elements.map((element) =>
+        changedFreeDrawIds.has(element.id)
+          ? newElementWith(element, {
+              simulatePressure: false,
+              pressures: element.points.map(() => 1),
+            })
+          : element,
+      );
+      excalidrawAPI.updateScene({
+        elements: updatedElements,
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
+      pointerDownVersionsRef.current = new Map(updatedElements.map((element) => [element.id, element.version]));
+    });
+  }, [excalidrawAPI]);
 
   useEffect(() => {
     const flush = () => {
@@ -221,6 +304,7 @@ function App() {
         initialData={initialData}
         onChange={handleChange}
         excalidrawAPI={setExcalidrawAPI}
+        onPointerUpdate={handlePointerUpdate}
         langCode="ru-RU"
         UIOptions={{
           canvasActions: {
