@@ -85,7 +85,13 @@ function App() {
   }, []);
 
   const handleChange = useCallback((elements, appState, files) => {
-    if (Number.isFinite(appState.currentItemStrokeWidth)) {
+    const selectedWidths = elements
+      .filter((element) => appState.selectedElementIds?.[element.id])
+      .map((element) => element.strokeWidth);
+    if (selectedWidths.length > 0) {
+      const firstWidth = selectedWidths[0];
+      setStrokeWidth(selectedWidths.every((width) => width === firstWidth) ? firstWidth : "");
+    } else if (Number.isFinite(appState.currentItemStrokeWidth)) {
       setStrokeWidth(appState.currentItemStrokeWidth);
     }
     const safeAppState = {};
