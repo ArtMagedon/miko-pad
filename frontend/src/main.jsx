@@ -88,7 +88,14 @@ function App() {
       if (appState[key] !== undefined) safeAppState[key] = appState[key];
     }
 
-    latestRef.current = {\n      type: "excalidraw",\n      version: 2,\n      source: "https://github.com/ArtMagedon/miko-pad",\n      elements,\n      appState: safeAppState,\n      files,\n    };
+    latestRef.current = {
+      type: "excalidraw",
+      version: 2,
+      source: "https://github.com/ArtMagedon/miko-pad",
+      elements,
+      appState: safeAppState,
+      files,
+    };
     const revision = ++revisionRef.current;
     setSaveState("saving");
     window.clearTimeout(timerRef.current);
