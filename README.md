@@ -40,7 +40,7 @@ The board survives container recreation and image updates as long as the host `d
 
 The built-in **Stroke width** control in the Excalidraw properties panel is replaced with a numeric input. Set the displayed width from **1 to 100** in 1-unit increments. The selected value is rendered at one fifth of that numeric value (for example, `10` produces a 2 px stroke). Existing board elements are migrated to the same scale once, so their displayed width values remain unchanged.
 
-Freehand strokes use Excalidraw's native speed-sensitive rendering (`simulatePressure`). The application does not rewrite pressure samples or stroke geometry after pointer release, so the final stroke is not modified by an additional post-processing step.
+New freehand strokes use a constant width. Hardware pen pressure and Excalidraw's speed-based pressure simulation are neutralized; after a stroke is completed, its pressure samples are normalized to a constant value. The selected stroke width remains the only width control.
 
 ## Architecture
 
