@@ -4,7 +4,9 @@ WORKDIR /app
 COPY frontend/package.json ./
 RUN npm install --no-audit --no-fund
 COPY frontend/ ./
-RUN npm run build
+RUN mkdir -p public/fonts \
+    && cp -R node_modules/@excalidraw/excalidraw/dist/prod/fonts/. public/fonts/ \
+    && npm run build
 
 FROM nginx:1.27-alpine
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
