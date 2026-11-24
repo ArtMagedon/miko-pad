@@ -22,7 +22,7 @@ The board is stored at:
 ./data/board.excalidraw
 ```
 
-The directory is mounted into the API container at `/data`. The file is created automatically after the first edit. The app loads it on every page opening and saves changes automatically (debounced). Image data is stored in the same file as the scene.
+The directory is mounted into the API container at `/data`. The file is created automatically after the first edit. The app loads it on every page opening and saves changes automatically (debounced). Image data is stored in the same file as the scene. Excalidraw fonts are copied into the image and served locally; the running app does not need the Excalidraw font CDN.
 
 Back up the board by copying `data/board.excalidraw`. To restore it, stop the stack, replace the file, and start the stack again.
 
@@ -43,7 +43,7 @@ The board survives container recreation and image updates as long as the host `d
 - **Backend:** FastAPI reads and atomically writes the board JSON.
 - **Storage:** one host-side file, `./data/board.excalidraw`.
 
-This is a single shared board, not a multi-user collaboration server. Anyone who can access the web page can edit it. Put it behind your trusted network or an authenticated reverse proxy before exposing it to the public Internet.
+This is one shared persistent board, not a real-time multiplayer session: simultaneous editing from multiple browser tabs or users is not synchronized, and the last completed save wins. Anyone who can access the web page can edit it. Put it behind your trusted network or an authenticated reverse proxy before exposing it to the public Internet.
 
 ## Configuration
 
