@@ -224,7 +224,7 @@ function App() {
       pointerDownVersionsRef.current = new Map(elements.map((element) => [element.id, element.version]));
       return;
     }
-    if (button !== "up" || pressureEnabledRef.current) return;
+    if (button !== "up") return;
 
     window.requestAnimationFrame(() => {
       const elements = excalidrawAPI.getSceneElementsIncludingDeleted();
@@ -237,14 +237,16 @@ function App() {
       );
       if (changedFreeDrawIds.size === 0) return;
 
-      const updatedElements = elements.map((element) =>
-        changedFreeDrawIds.has(element.id)
-          ? newElementWith(element, {
-              simulatePressure: false,
-              pressures: element.points.map(() => 1),
-            })
-          : element,
-      );
+      const useNativePressure = pressureEnabledRef.current;
+      const updatedElements = elements.map((element) => {
+        if (!changedFreeDrawIds.has(element.id)) return element;
+        return newElementWith(element, {
+          // Excalidraw / perfect-freehand uses simulatePressure to derive
+          // variable stroke width from pointer velocity.
+          simulatePressure: useNativePressure,
+          pressures: useNativePressure ? [] : element.points.map(() => 1),
+        });
+      });
       excalidrawAPI.updateScene({
         elements: updatedElements,
         captureUpdate: CaptureUpdateAction.NEVER,
