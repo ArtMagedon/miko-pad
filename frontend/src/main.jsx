@@ -127,6 +127,38 @@ function App() {
   };
 
   useEffect(() => {
+    const editor = document.querySelector(".app-shell");
+    if (!editor) return;
+
+    const installNumericStrokeWidth = () => {
+      editor.querySelectorAll("fieldset").forEach((fieldset) => {
+        const legend = fieldset.querySelector("legend");
+        if (legend?.textContent?.trim() !== "Толщина штриха") return;
+        if (fieldset.dataset.mikoStrokeWidthMounted === "true") return;
+
+        fieldset.dataset.mikoStrokeWidthMounted = "true";
+        fieldset.classList.add("miko-numeric-stroke-width");
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.max = "100";
+        input.step = "1";
+        input.value = String(strokeWidth);
+        input.setAttribute("aria-label", "Толщина штриха в пикселях");
+        input.className = "miko-stroke-width-input";
+        input.addEventListener("change", handleStrokeWidthChange);
+        fieldset.appendChild(input);
+      });
+    };
+
+    installNumericStrokeWidth();
+    const observer = new MutationObserver(installNumericStrokeWidth);
+    observer.observe(editor, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [initialData, strokeWidth, excalidrawAPI]);
+
+  useEffect(() => {
     const flush = () => {
       window.clearTimeout(timerRef.current);
       if (!latestRef.current) return;
@@ -169,19 +201,6 @@ function App() {
 
   return (
     <main className="app-shell">
-      <label className="stroke-width-control">
-        <span>Толщина линии</span>
-        <input
-          aria-label="Толщина линии в пикселях"
-          type="number"
-          min="1"
-          max="100"
-          step="1"
-          value={strokeWidth}
-          onChange={handleStrokeWidthChange}
-        />
-        <span>px</span>
-      </label>
       <div className={`save-indicator ${saveState}`} role="status">
         <span className="save-dot" />
         {statusText}
