@@ -59,6 +59,7 @@ function App() {
   const latestRef = useRef(null);
   const saveQueueRef = useRef(Promise.resolve());
   const revisionRef = useRef(0);
+  const elementsBeforePointerRef = useRef(new Set());
 
   useEffect(() => {
     let active = true;
@@ -99,6 +100,68 @@ function App() {
         if (revision === revisionRef.current) setSaveState("error");
       });
   }, []);
+
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+
+    // Ignore hardware pen pressure so the editor receives a uniform input width.
+    const normalizePointerPressure = (event) => {
+      try {
+        Object.defineProperty(event, "pressure", {
+          configurable: true,
+          value: 0.5,
+        });
+      } catch {
+        // Some browsers expose a non-configurable PointerEvent property.
+      }
+    };
+
+    const handlePointerDown = (event) => {
+      normalizePointerPressure(event);
+      elementsBeforePointerRef.current = new Set(
+        excalidrawAPI.getSceneElementsIncludingDeleted().map((element) => element.id),
+      );
+    };
+
+    const handlePointerMove = normalizePointerPressure;
+
+    const handlePointerUp = (event) => {
+      normalizePointerPressure(event);
+      // Excalidraw commits the final freehand element during its pointer-up handler.
+      window.setTimeout(() => {
+        const currentElements = excalidrawAPI.getSceneElementsIncludingDeleted();
+        const normalizedElements = currentElements.map((element) => {
+          if (element.type !== "freedraw" || elementsBeforePointerRef.current.has(element.id)) {
+            return element;
+          }
+          return {
+            ...element,
+            simulatePressure: false,
+            pressures: element.points.map(() => 0.5),
+          };
+        });
+        const changed = normalizedElements.some((element, index) => element !== currentElements[index]);
+        if (changed) {
+          excalidrawAPI.updateScene({
+            elements: normalizedElements,
+            captureUpdate: CaptureUpdateAction.NEVER,
+          });
+        }
+        elementsBeforePointerRef.current.clear();
+      }, 0);
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    window.addEventListener("pointermove", handlePointerMove, true);
+    window.addEventListener("pointerup", handlePointerUp, true);
+    window.addEventListener("pointercancel", handlePointerUp, true);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, true);
+      window.removeEventListener("pointermove", handlePointerMove, true);
+      window.removeEventListener("pointerup", handlePointerUp, true);
+      window.removeEventListener("pointercancel", handlePointerUp, true);
+    };
+  }, [excalidrawAPI]);
 
   const handleChange = useCallback((elements, appState, files) => {
     const selectedWidths = elements
