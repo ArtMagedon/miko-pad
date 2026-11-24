@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { CaptureUpdateAction, Excalidraw, newElementWith } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import "./style.css";
 
@@ -113,7 +113,17 @@ function App() {
     const value = Number(event.target.value);
     if (!Number.isFinite(value) || value < 1 || value > 100) return;
     setStrokeWidth(value);
-    excalidrawAPI?.updateScene({ appState: { currentItemStrokeWidth: value } });
+    if (!excalidrawAPI) return;
+    const appState = excalidrawAPI.getAppState();
+    const selectedIds = appState.selectedElementIds;
+    const elements = excalidrawAPI.getSceneElementsIncludingDeleted().map((element) =>
+      selectedIds[element.id] ? newElementWith(element, { strokeWidth: value }) : element,
+    );
+    excalidrawAPI.updateScene({
+      elements,
+      appState: { currentItemStrokeWidth: value },
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    });
   };
 
   useEffect(() => {
