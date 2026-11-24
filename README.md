@@ -38,7 +38,7 @@ The board survives container recreation and image updates as long as the host `d
 
 ## Editor controls
 
-A numeric **Line width** control is available in the upper-left area of the editor. Set the stroke width from **1 to 100 px** in 1 px increments. The value is applied to the current drawing style for newly created elements and is stored with the board, so it is restored when the page is reopened.
+The built-in **Stroke width** control in the Excalidraw properties panel is replaced with a numeric input. Set the width from **1 to 100 px** in 1 px increments. The value applies to the current drawing style and to selected elements, and is stored with the board.
 
 ## Architecture
 
