@@ -37,6 +37,8 @@ function App() {
   const [initialData, setInitialData] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [saveState, setSaveState] = useState("loading");
+  const [excalidrawAPI, setExcalidrawAPI] = useState(null);
+  const [strokeWidth, setStrokeWidth] = useState(2);
   const timerRef = useRef(null);
   const latestRef = useRef(null);
   const saveQueueRef = useRef(Promise.resolve());
@@ -83,6 +85,9 @@ function App() {
   }, []);
 
   const handleChange = useCallback((elements, appState, files) => {
+    if (Number.isFinite(appState.currentItemStrokeWidth)) {
+      setStrokeWidth(appState.currentItemStrokeWidth);
+    }
     const safeAppState = {};
     for (const key of APP_STATE_KEYS) {
       if (appState[key] !== undefined) safeAppState[key] = appState[key];
@@ -103,6 +108,13 @@ function App() {
       if (latestRef.current) persist(latestRef.current, revision);
     }, 700);
   }, [persist]);
+
+  const handleStrokeWidthChange = (event) => {
+    const value = Number(event.target.value);
+    if (!Number.isFinite(value) || value < 1 || value > 100) return;
+    setStrokeWidth(value);
+    excalidrawAPI?.updateScene({ appState: { currentItemStrokeWidth: value } });
+  };
 
   useEffect(() => {
     const flush = () => {
@@ -147,6 +159,19 @@ function App() {
 
   return (
     <main className="app-shell">
+      <label className="stroke-width-control">
+        <span>Толщина линии</span>
+        <input
+          aria-label="Толщина линии в пикселях"
+          type="number"
+          min="1"
+          max="100"
+          step="1"
+          value={strokeWidth}
+          onChange={handleStrokeWidthChange}
+        />
+        <span>px</span>
+      </label>
       <div className={`save-indicator ${saveState}`} role="status">
         <span className="save-dot" />
         {statusText}
@@ -154,6 +179,7 @@ function App() {
       <Excalidraw
         initialData={initialData}
         onChange={handleChange}
+        excalidrawAPI={setExcalidrawAPI}
         langCode="ru-RU"
         UIOptions={{
           canvasActions: {
