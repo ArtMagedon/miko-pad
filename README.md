@@ -36,6 +36,10 @@ docker compose up -d --build
 
 The board survives container recreation and image updates as long as the host `data/` directory is preserved. `docker compose down -v` does not remove this bind-mounted directory, but deleting `data/` manually will remove the board.
 
+## Editor controls
+
+A numeric **Line width** control is available in the upper-left area of the editor. Set the stroke width from **1 to 100 px** in 1 px increments. The value is applied to the current drawing style for newly created elements and is stored with the board, so it is restored when the page is reopened.
+
 ## Architecture
 
 - **Frontend:** React + Vite + official Excalidraw React component.
