@@ -55,11 +55,6 @@ function App() {
   const [saveState, setSaveState] = useState("loading");
   const [excalidrawAPI, setExcalidrawAPI] = useState(null);
   const [strokeWidth, setStrokeWidth] = useState(2);
-  const [pressureEnabled, setPressureEnabled] = useState(
-    () => localStorage.getItem("miko-pad-pressure-enabled") !== "false",
-  );
-  const pressureEnabledRef = useRef(pressureEnabled);
-  const pointerDownVersionsRef = useRef(new Map());
   const timerRef = useRef(null);
   const latestRef = useRef(null);
   const saveQueueRef = useRef(Promise.resolve());
@@ -169,8 +164,6 @@ function App() {
             existingInput.onchange = handleStrokeWidthChange;
             if (document.activeElement !== existingInput) existingInput.value = String(strokeWidth);
           }
-          const existingToggle = fieldset.querySelector(".miko-pressure-toggle-input");
-          if (existingToggle) existingToggle.checked = pressureEnabled;
           return;
         }
 
@@ -188,22 +181,6 @@ function App() {
         input.onchange = handleStrokeWidthChange;
         fieldset.appendChild(input);
 
-        const pressureLabel = document.createElement("label");
-        pressureLabel.className = "miko-pressure-toggle";
-        const pressureInput = document.createElement("input");
-        pressureInput.type = "checkbox";
-        pressureInput.className = "miko-pressure-toggle-input";
-        pressureInput.checked = pressureEnabled;
-        pressureInput.addEventListener("change", (event) => {
-          const enabled = event.target.checked;
-          pressureEnabledRef.current = enabled;
-          setPressureEnabled(enabled);
-          localStorage.setItem("miko-pad-pressure-enabled", String(enabled));
-        });
-        const pressureText = document.createElement("span");
-        pressureText.textContent = "Давление";
-        pressureLabel.append(pressureInput, pressureText);
-        fieldset.appendChild(pressureLabel);
       });
     };
 
@@ -211,49 +188,7 @@ function App() {
     const observer = new MutationObserver(installNumericStrokeWidth);
     observer.observe(editor, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [initialData, strokeWidth, pressureEnabled, excalidrawAPI]);
-
-  useEffect(() => {
-    pressureEnabledRef.current = pressureEnabled;
-  }, [pressureEnabled]);
-
-  const handlePointerUpdate = useCallback(({ button }) => {
-    if (!excalidrawAPI) return;
-    if (button === "down") {
-      const elements = excalidrawAPI.getSceneElementsIncludingDeleted();
-      pointerDownVersionsRef.current = new Map(elements.map((element) => [element.id, element.version]));
-      return;
-    }
-    if (button !== "up") return;
-
-    window.requestAnimationFrame(() => {
-      const elements = excalidrawAPI.getSceneElementsIncludingDeleted();
-      const changedFreeDrawIds = new Set(
-        elements.filter((element) =>
-          element.type === "freedraw" &&
-          !element.isDeleted &&
-          pointerDownVersionsRef.current.get(element.id) !== element.version
-        ).map((element) => element.id),
-      );
-      if (changedFreeDrawIds.size === 0) return;
-
-      const useNativePressure = pressureEnabledRef.current;
-      const updatedElements = elements.map((element) => {
-        if (!changedFreeDrawIds.has(element.id)) return element;
-        return newElementWith(element, {
-          // Excalidraw / perfect-freehand uses simulatePressure to derive
-          // variable stroke width from pointer velocity.
-          simulatePressure: useNativePressure,
-          pressures: useNativePressure ? [] : element.points.map(() => 1),
-        });
-      });
-      excalidrawAPI.updateScene({
-        elements: updatedElements,
-        captureUpdate: CaptureUpdateAction.NEVER,
-      });
-      pointerDownVersionsRef.current = new Map(updatedElements.map((element) => [element.id, element.version]));
-    });
-  }, [excalidrawAPI]);
+  }, [initialData, strokeWidth, excalidrawAPI]);
 
   useEffect(() => {
     const flush = () => {
@@ -306,7 +241,6 @@ function App() {
         initialData={initialData}
         onChange={handleChange}
         excalidrawAPI={setExcalidrawAPI}
-        onPointerUpdate={handlePointerUpdate}
         langCode="ru-RU"
         UIOptions={{
           canvasActions: {
