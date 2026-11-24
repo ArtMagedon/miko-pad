@@ -50,7 +50,7 @@ body,
 }
 
 
-.miko-numeric-stroke-width > :not(legend):not(.miko-stroke-width-input) {
+.miko-numeric-stroke-width > :not(legend):not(.miko-stroke-width-input):not(.miko-pressure-toggle) {
   display: none !important;
 }
 
@@ -65,6 +65,23 @@ body,
   background: var(--input-bg-color, #fff);
   color: var(--text-primary-color, #1f2937);
   font: inherit;
+}
+
+.miko-pressure-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--text-primary-color, #1f2937);
+  font: inherit;
+  cursor: pointer;
+}
+
+.miko-pressure-toggle-input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-primary, #6965db);
 }
 
 .miko-stroke-width-input:focus {
