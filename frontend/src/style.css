@@ -1,0 +1,67 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.save-indicator {
+  position: absolute;
+  z-index: 20;
+  top: 12px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 92%);
+  color: #4b5563;
+  font: 12px/1.2 system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.save-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.save-indicator.saving .save-dot {
+  background: #d97706;
+}
+
+.save-indicator.error .save-dot {
+  background: #dc2626;
+}
+
+.loading,
+.fatal {
+  display: grid;
+  min-height: 100%;
+  place-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: #374151;
+  font: 15px system-ui, sans-serif;
+}
+
+.fatal button {
+  width: fit-content;
+  padding: 8px 14px;
+  cursor: pointer;
+}
