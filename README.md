@@ -38,7 +38,9 @@ The board survives container recreation and image updates as long as the host `d
 
 ## Editor controls
 
-The built-in **Stroke width** control in the Excalidraw properties panel is replaced with a numeric input. Set the width from **1 to 100 px** in 1 px increments. The value applies to the current drawing style and to selected elements, and is stored with the board.
+The built-in **Stroke width** control in the Excalidraw properties panel is replaced with a numeric input. Set the displayed width from **1 to 100** in 1-unit increments. The selected value is rendered at one fifth of that numeric value (for example, `10` produces a 2 px stroke). Existing board elements are migrated to the same scale once, so their displayed width values remain unchanged.
+
+The **Pressure** checkbox controls speed-sensitive freehand width. When enabled, slower pointer movement produces a wider stroke. When disabled, newly drawn freehand strokes use a constant width. The preference is stored in the browser's local storage.
 
 ## Architecture
 
